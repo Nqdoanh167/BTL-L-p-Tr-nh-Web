@@ -1,0 +1,157 @@
+/** @format */
+
+import axios from 'axios';
+import React, {useEffect, useState} from 'react';
+import {useLocation, useNavigate} from 'react-router-dom';
+import {Buffer} from 'buffer';
+import FileToBase64 from '../utils/FileToBase64';
+export default function Update() {
+   const [book, setBook] = useState({
+      title: '',
+      author: '',
+      category: 'Văn học',
+      dateRelease: '',
+      quantitySold: '',
+      numberPage: '',
+      image: '',
+      descBook: '',
+   });
+
+   const navigate = useNavigate();
+
+   const handleOnchange = (e) => {
+      setBook((prev) => ({...prev, [e.target.name]: e.target.value}));
+   };
+
+   const handleOnchangeImage = async (e) => {
+      let file = e.target.files[0];
+      if (file) {
+         const base64 = await FileToBase64(file);
+         let b = {...book};
+         b.image = base64;
+         setBook(b);
+      }
+   };
+
+   const location = useLocation();
+   const bookId = location.pathname.split('/')[3];
+   useEffect(() => {
+      const fetchBookByID = async () => {
+         try {
+            const res = await axios.get(`http://localhost:8888/books/${bookId}`);
+            let book = res.data[0];
+            if (book.image) {
+               let imageBase64 = Buffer(book.image, 'base64').toString('binary');
+               book.image = imageBase64;
+            }
+            setBook(book);
+         } catch (err) {
+            console.log(err);
+         }
+      };
+      fetchBookByID();
+   }, [bookId]);
+   const [edit, setEdit] = useState(true);
+   const handleSave = async (e) => {
+      e.preventDefault();
+      if (book.title === '') alert('Nhập tiêu đề');
+      else if (book.author === '') alert('Nhập tên tác giả');
+      else if (book.dateRelease === '') alert('Nhập ngày phát hành');
+      else {
+         try {
+            await axios.put(`http://localhost:8888/books/${bookId}`, book);
+            navigate('/admin');
+         } catch (err) {
+            console.log(err);
+         }
+      }
+   };
+
+   return (
+      <div>
+         <h3 style={{textAlign: 'center'}}>Sách</h3>
+         <div className='row'>
+            <div className='col-md-6'>
+               <div className='row'>
+                  <div className='form-row' style={{display: 'flex'}}>
+                     <div className='form-group col-md-6' style={{paddingRight: '10px'}}>
+                        <label htmlFor='title'>Tiêu đề</label>
+                        <input type='text' className='form-control' name='title' placeholder='Tiêu đề' value={book.title} required onChange={handleOnchange} disabled={edit} />
+                     </div>
+                     <div className='form-group col-md-6'>
+                        <label htmlFor='author'>Tác giả</label>
+                        <input type='text' className='form-control' name='author' placeholder='Tác giả' value={book.author} required onChange={handleOnchange} disabled={edit} />
+                     </div>
+                  </div>
+                  <div className='form-row'>
+                     <div className='form-group col-md-12'>
+                        <label htmlFor='descBook'>Mô tả về sách</label>
+                        <textarea name='descBook' rows='4' cols='88' className='form-control' onChange={handleOnchange} style={{padding: '10px'}} value={book.descBook} disabled={edit}></textarea>
+                     </div>
+                  </div>
+                  <div className='form-row' style={{display: 'flex'}}>
+                     <div className='form-group col-md-6' style={{paddingRight: '10px'}}>
+                        <label>Ngày phát hành</label>
+                        <input type='date' className='form-control' name='dateRelease' value={book.dateRelease} required onChange={handleOnchange} disabled={edit} />
+                     </div>
+                     <div className='form-group col-md-6'>
+                        <label>Số trang</label>
+                        <input type='text' className='form-control' name='numberPage' placeholder='Số trang' value={book.numberPage} required onChange={handleOnchange} disabled={edit} />
+                     </div>
+                  </div>
+                  <div className='form-row' style={{display: 'flex'}}>
+                     <div className='form-group col-md-6' style={{paddingRight: '10px'}}>
+                        <label htmlFor='category'>Category</label>
+
+                        <select name='category' id='' className='form-control' onChange={handleOnchange} value={book.category} disabled={edit}>
+                           <option value=''></option>
+                           <option value='Văn học'>Văn học</option>
+                           <option value='Toán học'>Toán học </option>
+                           <option value='Khoa học'>Khoa học</option>
+                        </select>
+                        <i className='fa-sharp fa-solid fa-caret-down' style={{position: 'relative', left: '285px', top: '-31px', fontSize: '19px'}}></i>
+                     </div>
+                     <div className='form-group col-md-6'>
+                        <label>Số lượng bán</label>
+                        <input type='text' className='form-control' name='quantitySold' placeholder='Số lượng bán' value={book.quantitySold} required onChange={handleOnchange} disabled={edit} />
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <div className='col-md-6'>
+               <div className='row'>
+                  <div className='col-md-6 ' style={{textAlign: 'center', marginLeft: 200}}>
+                     <div>
+                        <input
+                           type='file'
+                           className='form-control'
+                           name='image'
+                           id='image'
+                           placeholder="Book's numberPage"
+                           hidden
+                           onChange={(e) => {
+                              handleOnchangeImage(e);
+                           }}
+                           disabled={edit}
+                        />
+                        {!edit && <label htmlFor='image'>Tải ảnh lên</label>}
+                     </div>
+                     {book.image && <img src={book.image} alt='anh' width='200' height='300' style={{objectFit: 'cover'}} />}
+                  </div>
+               </div>
+            </div>
+            <div className='form-group '>
+               {edit ? (
+                  <button className='btn btn-primary' onClick={() => setEdit(false)} style={{float: 'right'}}>
+                     Edit Book
+                  </button>
+               ) : (
+                  <button className='btn btn-primary' onClick={handleSave} style={{float: 'right'}}>
+                     Save Book
+                  </button>
+               )}
+            </div>
+         </div>
+      </div>
+   );
+}
